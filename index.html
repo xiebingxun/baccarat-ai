@@ -3,602 +3,417 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>百家樂 AI 輔助分析</title>
-
+<meta name="theme-color" content="#0d1117">
+<title>百家樂牌靴＋多模型輔助分析</title>
 <style>
+:root{
+  --bg:#0d1117; --card:#161b22; --line:#30363d; --text:#f0f3f6; --muted:#8b949e;
+  --banker:#e5534b; --player:#2f81f7; --tie:#3fb950; --warn:#d29922;
+}
 *{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:#0d1117;
-  color:#fff;
-}
-.wrap{
-  max-width:650px;
-  margin:auto;
-  padding:18px 14px 40px;
-}
-h1{
-  text-align:center;
-  font-size:25px;
-  margin:10px 0 5px;
-}
-.sub{
-  text-align:center;
-  color:#999;
-  font-size:13px;
-  margin-bottom:20px;
-}
-.card{
-  background:#161b22;
-  border:1px solid #30363d;
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:14px;
-}
-.buttons{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
-}
-button{
-  border:0;
-  border-radius:15px;
-  padding:17px 5px;
-  color:#fff;
-  font-size:22px;
-  font-weight:bold;
-}
-.banker{background:#d93b3b}
-.player{background:#287bd1}
-.tie{background:#25a55f}
-.tools{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:10px;
-}
-.tool{
-  background:#30363d;
-  font-size:15px;
-  padding:12px;
-}
-.clear{background:#722b32}
-.result{text-align:center}
-.label{color:#999;font-size:14px}
-.pick{
-  font-size:48px;
-  font-weight:900;
-  margin:10px 0 2px;
-}
-.conf{
-  color:#ffd54a;
-  font-weight:bold;
-  font-size:18px;
-}
-.bar{
-  width:100%;
-  height:12px;
-  background:#20262e;
-  border-radius:20px;
-  overflow:hidden;
-  margin-top:13px;
-}
-.fill{
-  width:50%;
-  height:100%;
-  background:linear-gradient(90deg,#287bd1,#ffd54a,#d93b3b);
-}
-.reason{
-  color:#aaa;
-  font-size:13px;
-  margin-top:10px;
-  line-height:1.6;
-}
-.history{
-  display:flex;
-  flex-wrap:wrap;
-  gap:7px;
-  margin-top:12px;
-}
-.ball{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:14px;
-  font-weight:bold;
-}
-.B{background:#d93b3b}
-.P{background:#287bd1}
-.T{background:#25a55f}
-.stats{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px;
-  margin-top:12px;
-}
-.stat{
-  padding:10px;
-  background:#0d1117;
-  border-radius:12px;
-  color:#aaa;
-  font-size:12px;
-}
-.stat strong{
-  display:block;
-  color:white;
-  font-size:18px;
-  margin-top:3px;
-}
-.note{
-  color:#888;
-  font-size:12px;
-  line-height:1.5;
-}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+.wrap{max-width:760px;margin:auto;padding:14px 12px 42px}
+h1{font-size:23px;margin:8px 0 3px;text-align:center}
+.sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.section-title{font-size:16px;font-weight:800;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+button{border:0;border-radius:12px;padding:12px 8px;color:white;font-size:16px;font-weight:800;touch-action:manipulation}
+.banker{background:var(--banker)} .player{background:var(--player)} .tie{background:var(--tie)}
+.secondary{background:#30363d}.danger{background:#7d2932}
+.rank-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.rank{background:#21262d;border:1px solid #3b434d;font-size:15px;padding:11px 2px}
+.hand-box{background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:10px;min-height:58px}
+.hand-title{font-size:13px;color:var(--muted);margin-bottom:7px}
+.hand-cards{display:flex;flex-wrap:wrap;gap:6px}
+.card-chip{min-width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#30363d;font-weight:900}
+.player-chip{outline:2px solid #2f81f7}
+.banker-chip{outline:2px solid #e5534b}
+.meta{font-size:12px;color:var(--muted);line-height:1.55}
+.big{text-align:center;font-size:44px;font-weight:900;margin:7px 0}
+.signal-b{color:#ff6b63}.signal-p{color:#58a6ff}.signal-skip{color:#f2cc60}
+.metric{background:#0d1117;border-radius:12px;padding:10px}
+.metric small{display:block;color:var(--muted)}
+.metric strong{display:block;font-size:18px;margin-top:3px}
+.bar{height:12px;border-radius:999px;background:#21262d;overflow:hidden;margin-top:8px}
+.barfill{height:100%;width:50%;background:linear-gradient(90deg,var(--player),#f2cc60,var(--banker))}
+.history{display:flex;flex-wrap:wrap;gap:6px}
+.dot{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.B{background:var(--banker)} .P{background:var(--player)} .T{background:var(--tie)}
+details summary{cursor:pointer;font-weight:800}
+select{width:100%;background:#0d1117;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px}
+.footer{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px}
+@media(max-width:420px){.rank-grid{grid-template-columns:repeat(5,1fr)}}
 </style>
 </head>
-
 <body>
-
 <div class="wrap">
+  <h1>百家樂牌靴＋多模型輔助分析</h1>
+  <div class="sub">剩餘牌 Monte Carlo 模擬＋牌路模型＋自動回測｜全部在手機本機運算</div>
 
-<h1>百家樂 AI 輔助分析</h1>
-<div class="sub">完全免費・不限次數・手機本機運算</div>
+  <div class="card">
+    <div class="section-title">1. 牌靴設定</div>
+    <div class="grid2">
+      <div>
+        <div class="meta">牌靴副數</div>
+        <select id="decks" onchange="changeDecks()">
+          <option value="8" selected>8 副牌（常見）</option>
+          <option value="6">6 副牌</option>
+        </select>
+      </div>
+      <div class="metric"><small>剩餘張數</small><strong id="remaining">416</strong></div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="secondary" onclick="undoLastCard()">撤回上一張牌</button>
+      <button class="danger" onclick="newShoe()">新牌靴／全部重設</button>
+    </div>
+  </div>
 
-<div class="card">
+  <div class="card">
+    <div class="section-title">2. 輸入本局實際牌</div>
+    <div class="grid2">
+      <button id="modeP" class="player" onclick="setMode('P')">正在輸入：閒家</button>
+      <button id="modeB" class="secondary" onclick="setMode('B')">切換到莊家</button>
+    </div>
 
-<div class="buttons">
-<button class="banker" onclick="add('B')">莊</button>
-<button class="player" onclick="add('P')">閒</button>
-<button class="tie" onclick="add('T')">和</button>
-</div>
+    <div class="rank-grid" style="margin-top:10px">
+      <button class="rank" onclick="addCard('A')">A</button>
+      <button class="rank" onclick="addCard('2')">2</button>
+      <button class="rank" onclick="addCard('3')">3</button>
+      <button class="rank" onclick="addCard('4')">4</button>
+      <button class="rank" onclick="addCard('5')">5</button>
+      <button class="rank" onclick="addCard('6')">6</button>
+      <button class="rank" onclick="addCard('7')">7</button>
+      <button class="rank" onclick="addCard('8')">8</button>
+      <button class="rank" onclick="addCard('9')">9</button>
+      <button class="rank" onclick="addCard('10')">10</button>
+      <button class="rank" onclick="addCard('J')">J</button>
+      <button class="rank" onclick="addCard('Q')">Q</button>
+      <button class="rank" onclick="addCard('K')">K</button>
+    </div>
 
-<div class="tools">
-<button class="tool" onclick="undo()">上一步</button>
-<button class="tool clear" onclick="clearAll()">全部清除</button>
-</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="hand-box">
+        <div class="hand-title">閒家</div>
+        <div id="pCards" class="hand-cards"></div>
+      </div>
+      <div class="hand-box">
+        <div class="hand-title">莊家</div>
+        <div id="bCards" class="hand-cards"></div>
+      </div>
+    </div>
 
-</div>
+    <div id="handPoints" class="meta" style="margin-top:8px">閒 0 點｜莊 0 點</div>
+    <button class="secondary" style="width:100%;margin-top:10px;padding:15px" onclick="finishRound()">完成本局並分析下一把</button>
+    <div class="meta" style="margin-top:7px">請照牌桌實際發出的牌輸入。兩邊各 2～3 張都可以，程式不會自行補牌。</div>
+  </div>
 
-<div class="card result">
+  <div class="card">
+    <div class="section-title">3. 下一把輔助判斷</div>
+    <div id="signal" class="big signal-skip">等待資料</div>
+    <div id="signalText" style="text-align:center;color:var(--muted)">完成至少 1 局後開始計算</div>
 
-<div class="label">下一把模型分析</div>
+    <div class="grid3" style="margin-top:12px">
+      <div class="metric"><small>牌靴模擬・莊</small><strong id="shoeB">—</strong></div>
+      <div class="metric"><small>牌靴模擬・閒</small><strong id="shoeP">—</strong></div>
+      <div class="metric"><small>牌靴模擬・和</small><strong id="shoeT">—</strong></div>
+    </div>
+    <div class="bar"><div id="bar" class="barfill"></div></div>
 
-<div id="pick" class="pick">等待資料</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="metric"><small>牌路模型傾向</small><strong id="roadBias">—</strong></div>
+      <div class="metric"><small>訊號等級</small><strong id="strength">—</strong></div>
+    </div>
 
-<div id="confidence" class="conf">
-請先輸入至少 6 局
-</div>
+    <div id="reason" class="meta" style="margin-top:10px"></div>
+  </div>
 
-<div class="bar">
-<div id="fill" class="fill"></div>
-</div>
+  <div class="card">
+    <div class="section-title">4. 實際回測</div>
+    <div class="grid3">
+      <div class="metric"><small>已判斷</small><strong id="predCount">0</strong></div>
+      <div class="metric"><small>命中</small><strong id="hits">0</strong></div>
+      <div class="metric"><small>命中率</small><strong id="hitRate">—</strong></div>
+    </div>
+    <div id="recentAccuracy" class="meta" style="margin-top:9px">最近 20 次：—</div>
+    <div class="meta" style="margin-top:5px">和局對莊／閒預測記為「Push」，不算輸也不算命中。</div>
+  </div>
 
-<div id="reason" class="reason"></div>
+  <div class="card">
+    <div class="section-title">牌局紀錄</div>
+    <div id="history" class="history"></div>
+  </div>
 
-</div>
+  <div class="card">
+    <details>
+      <summary>這版怎麼分析？</summary>
+      <div class="meta" style="margin-top:9px">
+        <b>牌靴層：</b>依你輸入後的剩餘 A～K 張數，使用本機 Monte Carlo 模擬下一局完整百家樂發牌流程，估計莊、閒、和的條件機率。<br><br>
+        <b>牌路層：</b>使用近期權重、一階/二階 Markov、連續型態等模型，並依最近回測表現做小幅動態加權。<br><br>
+        <b>決策層：</b>牌靴模擬為主、牌路只做輕度輔助。如果優勢太小，直接顯示「跳過」，不會每把硬猜。
+      </div>
+    </details>
+  </div>
 
-<div class="card">
-
-<strong>牌局紀錄</strong>
-
-<div id="history" class="history"></div>
-
-<div class="stats">
-
-<div class="stat">
-總局數
-<strong id="total">0</strong>
-</div>
-
-<div class="stat">
-莊 / 閒 / 和
-<strong id="counts">0 / 0 / 0</strong>
-</div>
-
-<div class="stat">
-最近10局莊率
-<strong id="recent">—</strong>
-</div>
-
-<div class="stat">
-目前連續
-<strong id="streak">—</strong>
-</div>
-
-</div>
-
-</div>
-
-<div class="card note">
-
-分析模型包含：
-最近牌局權重、Markov 轉移、二階序列、
-連莊連閒型態、長短期比例與多模型投票。
-
-<br><br>
-
-「模型信心」代表各分析模型的一致程度，
-不是實際中獎率，也不能保證下一局結果。
-
-</div>
-
+  <div class="footer">
+    注意：這不是能預知牌局的 AI，也不能保證獲利。百家樂仍具有高度隨機性；「模擬機率」只是依目前剩餘牌組估算，牌路模型則是歷史型態分析。
+  </div>
 </div>
 
 <script>
-
-let history =
-JSON.parse(localStorage.getItem("baccaratHistory") || "[]");
-
-function save(){
-localStorage.setItem("baccaratHistory",JSON.stringify(history));
-}
-
-function add(x){
-history.push(x);
-save();
-render();
-}
-
-function undo(){
-if(history.length){
-history.pop();
-save();
-render();
-}
-}
-
-function clearAll(){
-if(confirm("確定清除全部紀錄？")){
-history=[];
-save();
-render();
-}
-}
-
-function noTie(){
-return history.filter(x=>x!="T");
-}
-
-function recentModel(s){
-
-let a=s.slice(-12);
-
-if(!a.length)return .5;
-
-let score=0;
-let total=0;
-
-a.forEach((x,i)=>{
-
-let w=i+1;
-
-total+=w;
-
-if(x=="B")score+=w;
-
-});
-
-return score/total;
-
-}
-
-function markov(s){
-
-if(s.length<3)return .5;
-
-let last=s[s.length-1];
-
-let b=1,p=1;
-
-for(let i=0;i<s.length-1;i++){
-
-if(s[i]==last){
-
-if(s[i+1]=="B")b++;
-
-if(s[i+1]=="P")p++;
-
-}
-
-}
-
-return b/(b+p);
-
-}
-
-function secondOrder(s){
-
-if(s.length<5)return .5;
-
-let key=s.slice(-2).join("");
-
-let b=1,p=1;
-
-for(let i=0;i<s.length-2;i++){
-
-if(s[i]+s[i+1]==key){
-
-if(s[i+2]=="B")b++;
-
-if(s[i+2]=="P")p++;
-
-}
-
-}
-
-return b/(b+p);
-
-}
-
-function streakModel(s){
-
-if(s.length<2)return .5;
-
-let last=s[s.length-1];
-
-let n=1;
-
-for(let i=s.length-2;i>=0;i--){
-
-if(s[i]==last)n++;
-
-else break;
-
-}
-
-if(n>=2){
-
-if(last=="B")
-return Math.min(.62,.52+n*.018);
-
-else
-return Math.max(.38,.48-n*.018);
-
-}
-
-return .5;
-
-}
-
-function globalModel(s){
-
-let b=s.filter(x=>x=="B").length;
-
-return (b+2)/(s.length+4);
-
-}
-
-function predict(){
-
-let s=noTie();
-
-if(s.length<6)return null;
-
-let models=[
-
-{
-name:"近期牌型",
-value:recentModel(s),
-weight:1.15
-},
-
-{
-name:"Markov",
-value:markov(s),
-weight:1.2
-},
-
-{
-name:"二階序列",
-value:secondOrder(s),
-weight:1.3
-},
-
-{
-name:"連續型態",
-value:streakModel(s),
-weight:.85
-},
-
-{
-name:"長期比例",
-value:globalModel(s),
-weight:.7
-}
-
-];
-
-let score=0;
-let weight=0;
-
-models.forEach(m=>{
-
-score+=m.value*m.weight;
-weight+=m.weight;
-
-});
-
-let banker=score/weight;
-
-let choice="跳過";
-
-if(banker>=.535)
-choice="莊";
-
-if(banker<=.465)
-choice="閒";
-
-let agreement=0;
-
-models.forEach(m=>{
-
-if(choice=="莊" && m.value>.5)
-agreement++;
-
-if(choice=="閒" && m.value<.5)
-agreement++;
-
-});
-
-let distance=Math.abs(banker-.5);
-
-let confidence=
-Math.round(
-50+
-distance*260+
-agreement*3
-);
-
-confidence=Math.max(50,Math.min(78,confidence));
-
-if(choice=="跳過")
-confidence=Math.min(confidence,58);
-
-let strongest=models
-.sort(
-(a,b)=>
-Math.abs(b.value-.5)-
-Math.abs(a.value-.5)
-)[0];
-
-return{
-choice,
-confidence,
-banker,
-strongest
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const VALUE={A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':0,J:0,Q:0,K:0};
+
+let state = JSON.parse(localStorage.getItem('baccarat_v2') || 'null') || {
+  decks:8, counts:{}, history:[], currentP:[], currentB:[], mode:'P',
+  predictions:[], lastPrediction:null, modelStats:{
+    recent:{w:1,h:1}, markov:{w:1,h:1}, second:{w:1,h:1}, streak:{w:1,h:1}
+  }
 };
 
+function initCounts(decks){
+  const c={}; RANKS.forEach(r=>c[r]=4*decks); return c;
+}
+if(!state.counts || Object.keys(state.counts).length===0) state.counts=initCounts(state.decks||8);
+
+function save(){ localStorage.setItem('baccarat_v2',JSON.stringify(state)); }
+
+function changeDecks(){
+  if((state.history.length || state.currentP.length || state.currentB.length) &&
+     !confirm('更改副數會重設目前牌靴與紀錄，確定嗎？')) {
+    document.getElementById('decks').value=state.decks; return;
+  }
+  state.decks=parseInt(document.getElementById('decks').value);
+  hardReset(false);
+  render();
+}
+
+function newShoe(){
+  if(confirm('確定開始新牌靴？目前牌局、回測與牌數都會清空。')) hardReset(true);
+}
+
+function hardReset(renderNow=true){
+  state.counts=initCounts(state.decks);
+  state.history=[]; state.currentP=[]; state.currentB=[]; state.mode='P';
+  state.predictions=[]; state.lastPrediction=null;
+  state.modelStats={recent:{w:1,h:1},markov:{w:1,h:1},second:{w:1,h:1},streak:{w:1,h:1}};
+  save(); if(renderNow) render();
+}
+
+function setMode(m){ state.mode=m; save(); renderMode(); }
+
+function addCard(r){
+  if((state.counts[r]||0)<=0){ alert(r+' 已經沒有剩餘牌了'); return; }
+  const hand=state.mode==='P'?state.currentP:state.currentB;
+  if(hand.length>=3){ alert('每一方最多輸入 3 張牌'); return; }
+  hand.push(r); state.counts[r]--; save(); render();
+}
+
+function undoLastCard(){
+  let hand = state.mode==='P'?state.currentP:state.currentB;
+  if(!hand.length){
+    hand = state.mode==='P'?state.currentB:state.currentP;
+    if(!hand.length) return;
+  }
+  const r=hand.pop(); state.counts[r]++; save(); render();
+}
+
+function points(arr){ return arr.reduce((s,r)=>s+VALUE[r],0)%10; }
+
+function outcome(){
+  const p=points(state.currentP), b=points(state.currentB);
+  return p>b?'P':b>p?'B':'T';
+}
+
+function validHand(){
+  return state.currentP.length>=2 && state.currentP.length<=3 &&
+         state.currentB.length>=2 && state.currentB.length<=3;
+}
+
+function updateAdaptiveStats(actual){
+  const lp=state.lastPrediction;
+  if(!lp || actual==='T') return;
+  if(lp.modelVotes){
+    Object.entries(lp.modelVotes).forEach(([k,v])=>{
+      if(!state.modelStats[k]) state.modelStats[k]={w:1,h:1};
+      state.modelStats[k].w++;
+      if((v>0.5 && actual==='B') || (v<0.5 && actual==='P')) state.modelStats[k].h++;
+    });
+  }
+}
+
+function gradePrevious(actual){
+  const lp=state.lastPrediction;
+  if(!lp || lp.pick==='S') return;
+  let grade='push';
+  if(actual!=='T') grade = lp.pick===actual ? 'hit':'miss';
+  state.predictions.push({pick:lp.pick, actual, grade});
+}
+
+function finishRound(){
+  if(!validHand()){ alert('請確認閒家與莊家都輸入 2～3 張實際牌'); return; }
+  const actual=outcome();
+  gradePrevious(actual);
+  updateAdaptiveStats(actual);
+  state.history.push(actual);
+  state.currentP=[]; state.currentB=[]; state.mode='P';
+  const pred=makePrediction();
+  state.lastPrediction=pred;
+  save(); render();
+}
+
+function nonTie(){ return state.history.filter(x=>x!=='T'); }
+
+function recentModel(s){
+  const a=s.slice(-14); if(!a.length) return .5;
+  let b=0,t=0; a.forEach((x,i)=>{const w=i+1;t+=w;if(x==='B')b+=w;});
+  return b/t;
+}
+function markovModel(s){
+  if(s.length<4)return .5; const last=s[s.length-1]; let b=1,p=1;
+  for(let i=0;i<s.length-1;i++) if(s[i]===last){if(s[i+1]==='B')b++; else if(s[i+1]==='P')p++;}
+  return b/(b+p);
+}
+function secondModel(s){
+  if(s.length<6)return .5; const key=s.slice(-2).join(''); let b=1,p=1;
+  for(let i=0;i<s.length-2;i++) if(s[i]+s[i+1]===key){if(s[i+2]==='B')b++; else if(s[i+2]==='P')p++;}
+  return b/(b+p);
+}
+function streakModel(s){
+  if(s.length<3)return .5; const last=s[s.length-1]; let n=1;
+  for(let i=s.length-2;i>=0;i--){if(s[i]===last)n++;else break;}
+  if(n<2)return .5;
+  const shift=Math.min(.08,.015*n);
+  return last==='B'?.5+shift:.5-shift;
+}
+function modelReliability(k){
+  const st=state.modelStats[k]||{w:1,h:1};
+  return Math.max(.7,Math.min(1.3,(st.h/st.w)/.5));
+}
+function roadAnalysis(){
+  const s=nonTie();
+  const m={recent:recentModel(s),markov:markovModel(s),second:secondModel(s),streak:streakModel(s)};
+  let num=0,den=0;
+  Object.entries(m).forEach(([k,v])=>{const rel=modelReliability(k);num+=v*rel;den+=rel;});
+  return {pB:den?num/den:.5,votes:m};
+}
+
+function sampleCard(counts,total){
+  let x=Math.random()*total;
+  for(const r of RANKS){x-=counts[r];if(x<0)return r;}
+  return 'K';
+}
+function draw(counts,totalRef){
+  const r=sampleCard(counts,totalRef.n); counts[r]--; totalRef.n--; return r;
+}
+function simOne(base){
+  const c={...base}; const tr={n:Object.values(c).reduce((a,b)=>a+b,0)};
+  let p1=draw(c,tr), b1=draw(c,tr), p2=draw(c,tr), b2=draw(c,tr);
+  let p=[p1,p2], b=[b1,b2], pp=points(p), bp=points(b);
+  if(pp>=8 || bp>=8) return pp>bp?'P':bp>pp?'B':'T';
+
+  let p3=null;
+  if(pp<=5){p3=draw(c,tr);p.push(p3);pp=points(p);}
+
+  const bv=bp, p3v=p3===null?null:VALUE[p3];
+  let bankerDraw=false;
+  if(p3===null){bankerDraw=bv<=5;}
+  else{
+    if(bv<=2) bankerDraw=true;
+    else if(bv===3) bankerDraw=p3v!==8;
+    else if(bv===4) bankerDraw=p3v>=2 && p3v<=7;
+    else if(bv===5) bankerDraw=p3v>=4 && p3v<=7;
+    else if(bv===6) bankerDraw=p3v===6 || p3v===7;
+  }
+  if(bankerDraw){b.push(draw(c,tr));bp=points(b);}
+  return pp>bp?'P':bp>pp?'B':'T';
+}
+function shoeMonteCarlo(n=12000){
+  let B=0,P=0,T=0;
+  const remaining=Object.values(state.counts).reduce((a,b)=>a+b,0);
+  if(remaining<6) return {B:0,P:0,T:0};
+  for(let i=0;i<n;i++){
+    const r=simOne(state.counts);
+    if(r==='B')B++; else if(r==='P')P++; else T++;
+  }
+  return {B:B/n,P:P/n,T:T/n};
+}
+
+function makePrediction(){
+  const shoe=shoeMonteCarlo(12000);
+  const road=roadAnalysis();
+  const nonTieProb=shoe.B+shoe.P;
+  let shoeB=nonTieProb?shoe.B/nonTieProb:.5;
+  let combined=.88*shoeB+.12*road.pB;
+
+  const edge=Math.abs(combined-.5);
+  let pick='S';
+  if(combined>=.5125) pick='B';
+  else if(combined<=.4875) pick='P';
+
+  let strength='弱';
+  if(edge>=.02) strength='中';
+  if(edge>=.035) strength='強';
+
+  return {pick,shoe,roadB:road.pB,combined,strength,modelVotes:road.votes};
+}
+
+function pct(x){return (x*100).toFixed(2)+'%';}
+
+function renderMode(){
+  const p=document.getElementById('modeP'), b=document.getElementById('modeB');
+  if(state.mode==='P'){p.className='player';p.textContent='正在輸入：閒家';b.className='secondary';b.textContent='切換到莊家';}
+  else{b.className='banker';b.textContent='正在輸入：莊家';p.className='secondary';p.textContent='切換到閒家';}
 }
 
 function render(){
+  document.getElementById('decks').value=state.decks;
+  document.getElementById('remaining').textContent=Object.values(state.counts).reduce((a,b)=>a+b,0);
+  renderMode();
 
-document.getElementById("total").innerText=
-history.length;
+  const pc=document.getElementById('pCards'), bc=document.getElementById('bCards');
+  pc.innerHTML=''; bc.innerHTML='';
+  state.currentP.forEach(r=>{const d=document.createElement('div');d.className='card-chip player-chip';d.textContent=r;pc.appendChild(d)});
+  state.currentB.forEach(r=>{const d=document.createElement('div');d.className='card-chip banker-chip';d.textContent=r;bc.appendChild(d)});
+  document.getElementById('handPoints').textContent=`閒 ${points(state.currentP)} 點｜莊 ${points(state.currentB)} 點`;
 
-let b=history.filter(x=>x=="B").length;
-let p=history.filter(x=>x=="P").length;
-let t=history.filter(x=>x=="T").length;
+  const lp=state.lastPrediction;
+  const sig=document.getElementById('signal');
+  if(!lp){
+    sig.textContent='等待資料'; sig.className='big signal-skip';
+    document.getElementById('signalText').textContent='完成至少 1 局後開始計算';
+    ['shoeB','shoeP','shoeT','roadBias','strength'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('reason').textContent='';
+    document.getElementById('bar').style.width='50%';
+  }else{
+    const name=lp.pick==='B'?'莊':lp.pick==='P'?'閒':'跳過';
+    sig.textContent=name;
+    sig.className='big '+(lp.pick==='B'?'signal-b':lp.pick==='P'?'signal-p':'signal-skip');
+    document.getElementById('signalText').textContent=lp.pick==='S'?'目前優勢不足，不硬猜':'這是模型傾向，不代表保證命中';
+    document.getElementById('shoeB').textContent=pct(lp.shoe.B);
+    document.getElementById('shoeP').textContent=pct(lp.shoe.P);
+    document.getElementById('shoeT').textContent=pct(lp.shoe.T);
+    document.getElementById('roadBias').textContent=lp.roadB>.505?'偏莊':lp.roadB<.495?'偏閒':'中性';
+    document.getElementById('strength').textContent=lp.strength;
+    document.getElementById('bar').style.width=(lp.combined*100).toFixed(1)+'%';
+    document.getElementById('reason').textContent=
+      `綜合判斷（不含和局）偏莊 ${(lp.combined*100).toFixed(2)}%／偏閒 ${((1-lp.combined)*100).toFixed(2)}%。牌靴模擬權重 88%，牌路模型 12%。`;
+  }
 
-document.getElementById("counts").innerText=
-b+" / "+p+" / "+t;
+  const hist=document.getElementById('history'); hist.innerHTML='';
+  state.history.forEach(x=>{const d=document.createElement('div');d.className='dot '+x;d.textContent=x==='B'?'莊':x==='P'?'閒':'和';hist.appendChild(d)});
 
-let box=document.getElementById("history");
+  const graded=state.predictions.filter(x=>x.grade!=='push');
+  const hits=graded.filter(x=>x.grade==='hit').length;
+  document.getElementById('predCount').textContent=graded.length;
+  document.getElementById('hits').textContent=hits;
+  document.getElementById('hitRate').textContent=graded.length?((hits/graded.length)*100).toFixed(1)+'%':'—';
 
-box.innerHTML="";
-
-history.forEach(x=>{
-
-let d=document.createElement("div");
-
-d.className="ball "+x;
-
-d.innerText=
-x=="B"?"莊":
-x=="P"?"閒":"和";
-
-box.appendChild(d);
-
-});
-
-let s=noTie();
-
-let last10=s.slice(-10);
-
-if(last10.length){
-
-let b10=
-last10.filter(x=>x=="B").length;
-
-document.getElementById("recent").innerText=
-Math.round(b10/last10.length*100)+"%";
-
-}else{
-
-document.getElementById("recent").innerText="—";
-
+  const last20=graded.slice(-20), h20=last20.filter(x=>x.grade==='hit').length;
+  document.getElementById('recentAccuracy').textContent=last20.length?`最近 ${last20.length} 次：${h20} 中 / ${last20.length-h20} 錯（${(h20/last20.length*100).toFixed(1)}%）`:'最近 20 次：—';
 }
-
-if(s.length){
-
-let last=s[s.length-1];
-
-let n=1;
-
-for(let i=s.length-2;i>=0;i--){
-
-if(s[i]==last)n++;
-
-else break;
-
-}
-
-document.getElementById("streak").innerText=
-(last=="B"?"莊":"閒")+" × "+n;
-
-}else{
-
-document.getElementById("streak").innerText="—";
-
-}
-
-let r=predict();
-
-let pick=document.getElementById("pick");
-
-if(!r){
-
-pick.innerText="等待資料";
-pick.style.color="white";
-
-document.getElementById("confidence").innerText=
-"請先輸入至少 6 局";
-
-document.getElementById("reason").innerText="";
-
-document.getElementById("fill").style.width="50%";
-
-return;
-
-}
-
-pick.innerText=r.choice;
-
-pick.style.color=
-r.choice=="莊"
-?"#ff5252":
-r.choice=="閒"
-?"#42a5f5":
-"#ffd54a";
-
-document.getElementById("confidence").innerText=
-"模型信心 "+r.confidence+"%";
-
-document.getElementById("fill").style.width=
-Math.round(r.banker*100)+"%";
-
-let dir=
-r.strongest.value>.5?"莊":"閒";
-
-document.getElementById("reason").innerText=
-
-"綜合模型：莊 "+
-Math.round(r.banker*100)+
-"% ｜ 閒 "+
-Math.round((1-r.banker)*100)+
-"%\n目前影響較大的模型："+
-
-r.strongest.name+
-"（偏"+dir+"）";
-
-}
-
 render();
-
 </script>
-
 </body>
 </html>
