@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>百家樂 AI 輔助分析</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#0d1117;
+  color:#fff;
+}
+.wrap{
+  max-width:650px;
+  margin:auto;
+  padding:18px 14px 40px;
+}
+h1{
+  text-align:center;
+  font-size:25px;
+  margin:10px 0 5px;
+}
+.sub{
+  text-align:center;
+  color:#999;
+  font-size:13px;
+  margin-bottom:20px;
+}
+.card{
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:14px;
+}
+.buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+button{
+  border:0;
+  border-radius:15px;
+  padding:17px 5px;
+  color:#fff;
+  font-size:22px;
+  font-weight:bold;
+}
+.banker{background:#d93b3b}
+.player{background:#287bd1}
+.tie{background:#25a55f}
+.tools{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.tool{
+  background:#30363d;
+  font-size:15px;
+  padding:12px;
+}
+.clear{background:#722b32}
+.result{text-align:center}
+.label{color:#999;font-size:14px}
+.pick{
+  font-size:48px;
+  font-weight:900;
+  margin:10px 0 2px;
+}
+.conf{
+  color:#ffd54a;
+  font-weight:bold;
+  font-size:18px;
+}
+.bar{
+  width:100%;
+  height:12px;
+  background:#20262e;
+  border-radius:20px;
+  overflow:hidden;
+  margin-top:13px;
+}
+.fill{
+  width:50%;
+  height:100%;
+  background:linear-gradient(90deg,#287bd1,#ffd54a,#d93b3b);
+}
+.reason{
+  color:#aaa;
+  font-size:13px;
+  margin-top:10px;
+  line-height:1.6;
+}
+.history{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:12px;
+}
+.ball{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:bold;
+}
+.B{background:#d93b3b}
+.P{background:#287bd1}
+.T{background:#25a55f}
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:12px;
+}
+.stat{
+  padding:10px;
+  background:#0d1117;
+  border-radius:12px;
+  color:#aaa;
+  font-size:12px;
+}
+.stat strong{
+  display:block;
+  color:white;
+  font-size:18px;
+  margin-top:3px;
+}
+.note{
+  color:#888;
+  font-size:12px;
+  line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<h1>百家樂 AI 輔助分析</h1>
+<div class="sub">完全免費・不限次數・手機本機運算</div>
+
+<div class="card">
+
+<div class="buttons">
+<button class="banker" onclick="add('B')">莊</button>
+<button class="player" onclick="add('P')">閒</button>
+<button class="tie" onclick="add('T')">和</button>
+</div>
+
+<div class="tools">
+<button class="tool" onclick="undo()">上一步</button>
+<button class="tool clear" onclick="clearAll()">全部清除</button>
+</div>
+
+</div>
+
+<div class="card result">
+
+<div class="label">下一把模型分析</div>
+
+<div id="pick" class="pick">等待資料</div>
+
+<div id="confidence" class="conf">
+請先輸入至少 6 局
+</div>
+
+<div class="bar">
+<div id="fill" class="fill"></div>
+</div>
+
+<div id="reason" class="reason"></div>
+
+</div>
+
+<div class="card">
+
+<strong>牌局紀錄</strong>
+
+<div id="history" class="history"></div>
+
+<div class="stats">
+
+<div class="stat">
+總局數
+<strong id="total">0</strong>
+</div>
+
+<div class="stat">
+莊 / 閒 / 和
+<strong id="counts">0 / 0 / 0</strong>
+</div>
+
+<div class="stat">
+最近10局莊率
+<strong id="recent">—</strong>
+</div>
+
+<div class="stat">
+目前連續
+<strong id="streak">—</strong>
+</div>
+
+</div>
+
+</div>
+
+<div class="card note">
+
+分析模型包含：
+最近牌局權重、Markov 轉移、二階序列、
+連莊連閒型態、長短期比例與多模型投票。
+
+<br><br>
+
+「模型信心」代表各分析模型的一致程度，
+不是實際中獎率，也不能保證下一局結果。
+
+</div>
+
+</div>
+
+<script>
+
+let history =
+JSON.parse(localStorage.getItem("baccaratHistory") || "[]");
+
+function save(){
+localStorage.setItem("baccaratHistory",JSON.stringify(history));
+}
+
+function add(x){
+history.push(x);
+save();
+render();
+}
+
+function undo(){
+if(history.length){
+history.pop();
+save();
+render();
+}
+}
+
+function clearAll(){
+if(confirm("確定清除全部紀錄？")){
+history=[];
+save();
+render();
+}
+}
+
+function noTie(){
+return history.filter(x=>x!="T");
+}
+
+function recentModel(s){
+
+let a=s.slice(-12);
+
+if(!a.length)return .5;
+
+let score=0;
+let total=0;
+
+a.forEach((x,i)=>{
+
+let w=i+1;
+
+total+=w;
+
+if(x=="B")score+=w;
+
+});
+
+return score/total;
+
+}
+
+function markov(s){
+
+if(s.length<3)return .5;
+
+let last=s[s.length-1];
+
+let b=1,p=1;
+
+for(let i=0;i<s.length-1;i++){
+
+if(s[i]==last){
+
+if(s[i+1]=="B")b++;
+
+if(s[i+1]=="P")p++;
+
+}
+
+}
+
+return b/(b+p);
+
+}
+
+function secondOrder(s){
+
+if(s.length<5)return .5;
+
+let key=s.slice(-2).join("");
+
+let b=1,p=1;
+
+for(let i=0;i<s.length-2;i++){
+
+if(s[i]+s[i+1]==key){
+
+if(s[i+2]=="B")b++;
+
+if(s[i+2]=="P")p++;
+
+}
+
+}
+
+return b/(b+p);
+
+}
+
+function streakModel(s){
+
+if(s.length<2)return .5;
+
+let last=s[s.length-1];
+
+let n=1;
+
+for(let i=s.length-2;i>=0;i--){
+
+if(s[i]==last)n++;
+
+else break;
+
+}
+
+if(n>=2){
+
+if(last=="B")
+return Math.min(.62,.52+n*.018);
+
+else
+return Math.max(.38,.48-n*.018);
+
+}
+
+return .5;
+
+}
+
+function globalModel(s){
+
+let b=s.filter(x=>x=="B").length;
+
+return (b+2)/(s.length+4);
+
+}
+
+function predict(){
+
+let s=noTie();
+
+if(s.length<6)return null;
+
+let models=[
+
+{
+name:"近期牌型",
+value:recentModel(s),
+weight:1.15
+},
+
+{
+name:"Markov",
+value:markov(s),
+weight:1.2
+},
+
+{
+name:"二階序列",
+value:secondOrder(s),
+weight:1.3
+},
+
+{
+name:"連續型態",
+value:streakModel(s),
+weight:.85
+},
+
+{
+name:"長期比例",
+value:globalModel(s),
+weight:.7
+}
+
+];
+
+let score=0;
+let weight=0;
+
+models.forEach(m=>{
+
+score+=m.value*m.weight;
+weight+=m.weight;
+
+});
+
+let banker=score/weight;
+
+let choice="跳過";
+
+if(banker>=.535)
+choice="莊";
+
+if(banker<=.465)
+choice="閒";
+
+let agreement=0;
+
+models.forEach(m=>{
+
+if(choice=="莊" && m.value>.5)
+agreement++;
+
+if(choice=="閒" && m.value<.5)
+agreement++;
+
+});
+
+let distance=Math.abs(banker-.5);
+
+let confidence=
+Math.round(
+50+
+distance*260+
+agreement*3
+);
+
+confidence=Math.max(50,Math.min(78,confidence));
+
+if(choice=="跳過")
+confidence=Math.min(confidence,58);
+
+let strongest=models
+.sort(
+(a,b)=>
+Math.abs(b.value-.5)-
+Math.abs(a.value-.5)
+)[0];
+
+return{
+choice,
+confidence,
+banker,
+strongest
+};
+
+}
+
+function render(){
+
+document.getElementById("total").innerText=
+history.length;
+
+let b=history.filter(x=>x=="B").length;
+let p=history.filter(x=>x=="P").length;
+let t=history.filter(x=>x=="T").length;
+
+document.getElementById("counts").innerText=
+b+" / "+p+" / "+t;
+
+let box=document.getElementById("history");
+
+box.innerHTML="";
+
+history.forEach(x=>{
+
+let d=document.createElement("div");
+
+d.className="ball "+x;
+
+d.innerText=
+x=="B"?"莊":
+x=="P"?"閒":"和";
+
+box.appendChild(d);
+
+});
+
+let s=noTie();
+
+let last10=s.slice(-10);
+
+if(last10.length){
+
+let b10=
+last10.filter(x=>x=="B").length;
+
+document.getElementById("recent").innerText=
+Math.round(b10/last10.length*100)+"%";
+
+}else{
+
+document.getElementById("recent").innerText="—";
+
+}
+
+if(s.length){
+
+let last=s[s.length-1];
+
+let n=1;
+
+for(let i=s.length-2;i>=0;i--){
+
+if(s[i]==last)n++;
+
+else break;
+
+}
+
+document.getElementById("streak").innerText=
+(last=="B"?"莊":"閒")+" × "+n;
+
+}else{
+
+document.getElementById("streak").innerText="—";
+
+}
+
+let r=predict();
+
+let pick=document.getElementById("pick");
+
+if(!r){
+
+pick.innerText="等待資料";
+pick.style.color="white";
+
+document.getElementById("confidence").innerText=
+"請先輸入至少 6 局";
+
+document.getElementById("reason").innerText="";
+
+document.getElementById("fill").style.width="50%";
+
+return;
+
+}
+
+pick.innerText=r.choice;
+
+pick.style.color=
+r.choice=="莊"
+?"#ff5252":
+r.choice=="閒"
+?"#42a5f5":
+"#ffd54a";
+
+document.getElementById("confidence").innerText=
+"模型信心 "+r.confidence+"%";
+
+document.getElementById("fill").style.width=
+Math.round(r.banker*100)+"%";
+
+let dir=
+r.strongest.value>.5?"莊":"閒";
+
+document.getElementById("reason").innerText=
+
+"綜合模型：莊 "+
+Math.round(r.banker*100)+
+"% ｜ 閒 "+
+Math.round((1-r.banker)*100)+
+"%\n目前影響較大的模型："+
+
+r.strongest.name+
+"（偏"+dir+"）";
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>
