@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>百家樂 V6.5｜專業防守版</title>
+<style>body{margin:0;background:#0d1117;color:#f0f3f6;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}.w{max-width:720px;margin:auto;padding:10px}.c{background:#161b22;border:1px solid #30363d;border-radius:18px;padding:13px;margin:9px 0}h1{text-align:center;font-size:23px}.sub,.m{color:#8b949e;font-size:13px;line-height:1.6;text-align:center}.sig{text-align:center;font-size:52px;font-weight:900}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.x{background:#0d1117;border-radius:12px;padding:9px;text-align:center}.x small{display:block;color:#8b949e}.x b{font-size:18px}button{border:0;border-radius:16px;color:white;font-weight:900;min-height:92px;font-size:30px}.B{background:#ef5350}.P{background:#2f81f7}.T{background:#3fb950}.sticky{position:sticky;bottom:8px}.hist{display:flex;flex-wrap:wrap;gap:5px}.d{width:29px;height:29px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}</style></head><body><div class="w">
+<h1>百家樂 V6.5｜專業防守版</h1><div class="sub">至少10個非和局才判斷｜只保留明顯節奏｜固定1單位回測｜單靴 -3 單位自動停止</div>
+<div class="c"><div id="sig" class="sig">等待資料</div><div id="why" class="m">至少累積10個非和局</div><div class="g"><div class="x"><small>節奏</small><b id="kind">—</b></div><div class="x"><small>吻合度</small><b id="fit">—</b></div><div class="x"><small>局數</small><b id="rounds">0</b></div></div></div>
+<div class="c sticky"><div class="g"><button class="B" onclick="go('B')">莊</button><button class="P" onclick="go('P')">閒</button><button class="T" onclick="go('T')">和</button></div></div>
+<div class="c"><div class="g"><div class="x"><small>有效</small><b id="n">0</b></div><div class="x"><small>命中</small><b id="hit">0</b></div><div class="x"><small>命中率</small><b id="rate">—</b></div></div><div class="g" style="margin-top:8px"><div class="x"><small>失敗</small><b id="miss">0</b></div><div class="x"><small>Push</small><b id="push">0</b></div><div class="x"><small>跳過</small><b id="skip">0</b></div></div></div>
+<div class="c"><div class="g">
+<div class="x"><small>本靴單位損益</small><b id="pl">0.00</b></div>
+<div class="x"><small>風控狀態</small><b id="risk">正常</b></div>
+<div class="x"><small>規則</small><b>-3 停止</b></div>
+</div><div class="m" style="margin-top:10px">這個保護只限制損失曝險，不會提高下一局的真實勝率。莊勝以 +0.95 單位、閒勝 +1、輸 -1、和局 0 計算；禁止追碼／加倍。</div></div><div class="c"><div id="hist" class="hist"></div><button style="margin-top:12px;width:100%;min-height:48px;font-size:16px;background:#30363d" onclick="newShoe()">新牌靴（重設本靴風控）</button><div class="m" style="margin-top:10px">前10個非和局只觀察、不出訊號；10局後仍需節奏吻合度達76%以上才開始報莊／閒。最近3個非和局會加重權重；舊節奏失效時先跳過，不硬追。</div></div>
+</div><script>
+const K='baccarat_v63';let s=JSON.parse(localStorage.getItem(K)||'null')||{h:[],r:[],last:null,skip:0,shoePL:0,stopped:false};
+const pats={'單跳':[1],'雙跳':[2],'三段交替':[3],'1-2節奏':[1,2],'2-1節奏':[2,1],'1-3節奏':[1,3],'3-1節奏':[3,1],'2-2節奏':[2,2],'2-3節奏':[2,3],'3-2節奏':[3,2],'3-3節奏':[3,3]};
+function template(lens,start){let a=[],side=start,i=0;while(a.length<120){for(let k=0;k<lens[i%lens.length];k++)a.push(side);side=side==='B'?'P':'B';i++}return a}
+function predict(h){if(h.length<10)return{p:'S',k:'觀察中',sc:0};let r=h.slice(-18),best=null;for(const [name,lens] of Object.entries(pats))for(const start of ['B','P']){let a=template(lens,start),period=lens.reduce((x,y)=>x+y,0)*2;for(let ph=0;ph<period;ph++){let t=a.slice(ph,ph+r.length+1),num=0,den=0;for(let j=0;j<r.length;j++){let w=j>=r.length-3?2.8:1;den+=w;if(r[j]===t[j])num+=w}let sc=num/den,r3=0;for(let j=0;j<3;j++)if(r[r.length-3+j]===t[r.length-3+j])r3++;r3/=3;let z={adj:sc+.08*r3,sc,r3,p:t[r.length],k:name};if(!best||z.adj>best.adj)best=z}}if(best.sc<.76||best.r3<2/3)return{p:'S',k:'混亂／轉盤',sc:best.sc};return best}
+function nt(){return s.h.filter(x=>x!=='T')}function save(){localStorage.setItem(K,JSON.stringify(s))}
+function go(a){
+ if(s.stopped){
+   s.skip++;
+ }else if(s.last&&s.last.p!=='S'){
+   let g=a==='T'?'push':a===s.last.p?'hit':'miss';
+   s.r.push({g,pick:s.last.p});
+   if(g==='hit') s.shoePL += s.last.p==='B' ? 0.95 : 1.0;
+   else if(g==='miss') s.shoePL -= 1.0;
+   if(s.shoePL<=-3) s.stopped=true;
+ }else if(s.last)s.skip++;
+ s.h.push(a);
+ s.last=s.stopped?{p:'S',k:'風控停止',sc:0}:predict(nt());
+ save();render();
+}
+function newShoe(){s.h=[];s.last=null;s.shoePL=0;s.stopped=false;save();render();}
+function render(){rounds.textContent=s.h.length;let L=s.last;if(!L){sig.textContent='等待資料';kind.textContent='—';fit.textContent='—';why.textContent='至少累積10個非和局'}else{sig.textContent=L.p==='B'?'莊':L.p==='P'?'閒':'跳過';sig.style.color=L.p==='B'?'#ff6b63':L.p==='P'?'#58a6ff':'#f2cc60';kind.textContent=L.k;fit.textContent=(L.sc*100).toFixed(0)+'%';why.textContent=L.p==='S'?'節奏不夠穩定或正在轉盤，跳過。':'依目前重複節奏產生訊號。'}hist.innerHTML='';s.h.slice(-60).forEach(x=>{let d=document.createElement('div');d.className='d '+x;d.textContent=x==='B'?'莊':x==='P'?'閒':'和';hist.appendChild(d)});let rr=s.r.filter(x=>x.g!=='push'),hh=rr.filter(x=>x.g==='hit').length,mm=rr.filter(x=>x.g==='miss').length,pp=s.r.filter(x=>x.g==='push').length;n.textContent=rr.length;hit.textContent=hh;miss.textContent=mm;push.textContent=pp;skip.textContent=s.skip;rate.textContent=rr.length?(hh/rr.length*100).toFixed(1)+'%':'—';pl.textContent=(s.shoePL||0).toFixed(2);risk.textContent=s.stopped?'本靴停止':'正常';if(s.stopped){sig.textContent='停止';sig.style.color='#f2cc60';why.textContent='本靴已達 -3 單位風控線，停止出訊號。';}}render();
+</script></body></html>
