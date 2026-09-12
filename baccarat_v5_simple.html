@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>百家樂 V5｜極簡一鍵版</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#30363d;--text:#f0f3f6;--muted:#8b949e;--b:#ef5350;--p:#2f81f7;--t:#3fb950;--y:#d29922}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+.wrap{max-width:720px;margin:auto;padding:12px 12px 42px}h1{text-align:center;font-size:24px;margin:8px 0 3px}.sub{text-align:center;color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:10px 0}.title{font-weight:900;font-size:18px;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{border:0;border-radius:16px;color:white;font-weight:900;touch-action:manipulation}.result button{min-height:92px;font-size:30px}
+.b{background:var(--b)}.p{background:var(--p)}.t{background:var(--t)}.sec{background:#30363d;padding:13px;font-size:16px}.danger{background:#7d2932;padding:13px;font-size:16px}
+.signal{text-align:center;font-size:52px;font-weight:950;margin:5px 0}.sb{color:#ff6b63}.sp{color:#58a6ff}.ss{color:#f2cc60}
+.meta{font-size:12px;color:var(--muted);line-height:1.55}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric{background:#0d1117;border-radius:13px;padding:10px;text-align:center}.metric small{display:block;color:var(--muted)}.metric strong{display:block;font-size:19px;margin-top:4px}
+select{width:100%;background:#0d1117;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px}
+.history{display:flex;flex-wrap:wrap;gap:6px}.dot{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px}.B{background:var(--b)}.P{background:var(--p)}.T{background:var(--t)}
+.modelrow{display:grid;grid-template-columns:1.25fr .75fr .75fr;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #252b33}.modelrow:last-child{border-bottom:0}
+.good{color:#7ee787}.bad{color:#ff7b72}.warn{color:#f2cc60}.footer{font-size:12px;color:var(--muted);line-height:1.65;margin-top:12px}
+.sticky{position:sticky;bottom:8px;z-index:10;background:rgba(13,17,23,.95);border:1px solid var(--line);border-radius:18px;padding:10px;backdrop-filter:blur(8px)}
+@media(max-width:420px){.wrap{padding-left:8px;padding-right:8px}.result button{min-height:96px;font-size:32px}.card{padding:12px}}
+</style>
+</head>
+<body><div class="wrap">
+<h1>百家樂 V5｜極簡一鍵版</h1>
+<div class="sub">每局只按一次「莊／閒／和」｜自動記錄、出訊號、算勝敗與命中率</div>
+
+<div class="card">
+<div class="title">下一局建議</div>
+<select id="mode" onchange="changeMode()">
+<option value="balanced">平衡｜訊號較多</option>
+<option value="strict" selected>嚴格｜少出手</option>
+<option value="ultra">極嚴｜只留高一致性訊號</option>
+</select>
+<div id="signal" class="signal ss">等待資料</div>
+<div id="signalText" class="meta" style="text-align:center">先輸入幾局結果，模型才開始判斷</div>
+<div class="metrics" style="margin-top:10px">
+<div class="metric"><small>模型莊機率</small><strong id="probB">—</strong></div>
+<div class="metric"><small>模型閒機率</small><strong id="probP">—</strong></div>
+<div class="metric"><small>一致性</small><strong id="consensus">—</strong></div>
+</div>
+<div id="reason" class="meta" style="margin-top:9px"></div>
+</div>
+
+<div class="card sticky">
+<div class="title">本局結果</div>
+<div class="meta" style="margin-bottom:8px">牌局開完後，只要按一次結果：</div>
+<div class="grid3 result">
+<button class="b" onclick="finish('B')">莊</button>
+<button class="p" onclick="finish('P')">閒</button>
+<button class="t" onclick="finish('T')">和</button>
+</div>
+</div>
+
+<div class="card">
+<div class="title">自動實戰回測</div>
+<div class="metrics">
+<div class="metric"><small>有效預測</small><strong id="nPred">0</strong></div>
+<div class="metric"><small>命中</small><strong id="nHit">0</strong></div>
+<div class="metric"><small>命中率</small><strong id="rate">—</strong></div>
+</div>
+<div class="metrics" style="margin-top:8px">
+<div class="metric"><small>失敗</small><strong id="nMiss">0</strong></div>
+<div class="metric"><small>跳過</small><strong id="nSkip">0</strong></div>
+<div class="metric"><small>和局 Push</small><strong id="nPush">0</strong></div>
+</div>
+<div id="recent" class="meta" style="margin-top:9px">最近 20 次有效預測：—</div>
+</div>
+
+<div class="card">
+<div class="title">模型狀態</div>
+<div id="models"></div>
+<div class="meta" style="margin-top:8px">V5 用近期加權、1階轉移、2階轉移與連續局勢做綜合判斷；沒有輸入牌面，所以不會假裝做剩餘牌算牌。</div>
+</div>
+
+<div class="card">
+<div class="title">牌局紀錄</div>
+<div id="history" class="history"></div>
+<div class="grid2" style="margin-top:12px">
+<button class="sec" onclick="undo()">撤回上一局</button>
+<button class="danger" onclick="newShoe()">新牌靴</button>
+</div>
+<div class="meta" style="margin-top:8px">「新牌靴」只會清除本靴牌路；總回測紀錄會保留。</div>
+</div>
+
+<div class="card">
+<div class="title">總回測管理</div>
+<div class="grid2">
+<button class="sec" onclick="exportSummary()">顯示摘要</button>
+<button class="danger" onclick="resetStats()">清除總回測</button>
+</div>
+<div id="summary" class="meta" style="margin-top:9px"></div>
+</div>
+
+<div class="footer">
+這個版本的優先目標是「實際用得下去」。因為你只輸入莊／閒／和，所以它無法知道剩餘牌組成，也不能做真正的牌靴算牌。牌路模型在公平百家樂中沒有被證明能穩定達到 60% 命中率，因此 V5 會大量使用「跳過」，並把你自己的實際命中率完整留下來。
+</div>
+</div>
+
+<script>
+const KEY='baccarat_v5';
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
+ history:[], predictions:[], lastPrediction:null, mode:'strict',
+ totals:{skip:0}
+};
+if(!state.history)state.history=[];
+if(!state.predictions)state.predictions=[];
+if(!state.totals)state.totals={skip:0};
+if(!state.mode)state.mode='strict';
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function nonTie(){return state.history.filter(x=>x!=='T')}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function recentModel(h){
+ if(h.length<6)return .5;
+ const a=h.slice(-14);let wb=0,w=0;
+ for(let i=0;i<a.length;i++){const wt=i+1;w+=wt;if(a[i]==='B')wb+=wt}
+ return wb/w;
+}
+function markov1(h){
+ if(h.length<8)return .5;const last=h[h.length-1];let b=1,p=1;
+ for(let i=0;i<h.length-1;i++)if(h[i]===last){if(h[i+1]==='B')b++;else p++}
+ return b/(b+p);
+}
+function markov2(h){
+ if(h.length<10)return .5;const a=h[h.length-2],b0=h[h.length-1];let b=1,p=1;
+ for(let i=0;i<h.length-2;i++)if(h[i]===a&&h[i+1]===b0){if(h[i+2]==='B')b++;else p++}
+ return b/(b+p);
+}
+function streakModel(h){
+ if(h.length<4)return .5;const last=h[h.length-1];let n=1;
+ for(let i=h.length-2;i>=0&&h[i]===last;i--)n++;
+ if(n<2)return .5;
+ const d=Math.min(.075,.0125*n);
+ return last==='B'?.5+d:.5-d;
+}
+function modelSet(){
+ const h=nonTie();
+ return [
+  {name:'近期加權',p:recentModel(h)},
+  {name:'1階轉移',p:markov1(h)},
+  {name:'2階轉移',p:markov2(h)},
+  {name:'連續局勢',p:streakModel(h)}
+ ];
+}
+function predict(){
+ const h=nonTie(),ms=modelSet();
+ if(h.length<8)return{pick:'S',pB:.5,cons:0,models:ms,reason:'至少需要 8 個非和局結果才開始出訊號。'};
+ const weights=[.35,.25,.25,.15];
+ let pB=0;for(let i=0;i<ms.length;i++)pB+=ms[i].p*weights[i];
+ const votes=ms.map(m=>m.p>.515?'B':m.p<.485?'P':'N');
+ const b=votes.filter(x=>x==='B').length,p=votes.filter(x=>x==='P').length;
+ const cons=Math.max(b,p)/4;
+ const th={balanced:.525,strict:.545,ultra:.56}[state.mode]||.545;
+ const need={balanced:.50,strict:.75,ultra:.75}[state.mode]||.75;
+ let pick='S';
+ if(pB>=th&&cons>=need)pick='B';
+ else if(pB<=1-th&&cons>=need)pick='P';
+ let reason=`綜合莊機率 ${(pB*100).toFixed(1)}%，一致性 ${(cons*100).toFixed(0)}%。`;
+ if(pick==='S')reason+=' 未達目前模式門檻，因此跳過。';
+ else reason+=` 達到「${state.mode==='balanced'?'平衡':state.mode==='strict'?'嚴格':'極嚴'}」出手條件。`;
+ return{pick,pB,cons,models:ms,reason};
+}
+function grade(actual){
+ const lp=state.lastPrediction;
+ if(!lp||lp.pick==='S')return;
+ let grade='push';if(actual!=='T')grade=lp.pick===actual?'hit':'miss';
+ state.predictions.push({pick:lp.pick,actual,grade,ts:Date.now()});
+}
+function finish(actual){
+ grade(actual);
+ state.history.push(actual);
+ state.lastPrediction=predict();
+ if(state.lastPrediction.pick==='S')state.totals.skip=(state.totals.skip||0)+1;
+ save();render();
+ if(navigator.vibrate)navigator.vibrate(18);
+}
+function undo(){
+ if(!state.history.length)return;
+ const removed=state.history.pop();
+ // 若上一局有被評分，回滾一筆評分
+ if(state.predictions.length){
+   const last=state.predictions[state.predictions.length-1];
+   if(last.actual===removed)state.predictions.pop();
+ }
+ state.lastPrediction=state.history.length?predict():null;
+ save();render();
+}
+function newShoe(){
+ if(!confirm('開始新牌靴？本靴牌路會清除，但總回測會保留。'))return;
+ state.history=[];state.lastPrediction=null;save();render();
+}
+function resetStats(){
+ if(!confirm('確定清除所有總回測紀錄？'))return;
+ state.predictions=[];state.totals={skip:0};save();render();
+}
+function changeMode(){state.mode=document.getElementById('mode').value;state.lastPrediction=state.history.length?predict():null;save();render()}
+function exportSummary(){
+ const g=state.predictions.filter(x=>x.grade!=='push'),hits=g.filter(x=>x.grade==='hit').length,miss=g.filter(x=>x.grade==='miss').length,push=state.predictions.filter(x=>x.grade==='push').length;
+ document.getElementById('summary').textContent=`有效預測 ${g.length} 次｜命中 ${hits}｜失敗 ${miss}｜和局 Push ${push}｜命中率 ${g.length?(hits/g.length*100).toFixed(1)+'%':'—'}｜累積跳過 ${state.totals.skip||0} 次`;
+}
+function render(){
+ document.getElementById('mode').value=state.mode;
+ const lp=state.lastPrediction,sig=document.getElementById('signal');
+ if(!lp){
+  sig.textContent='等待資料';sig.className='signal ss';
+  document.getElementById('signalText').textContent='先輸入幾局結果，模型才開始判斷';
+  document.getElementById('probB').textContent='—';document.getElementById('probP').textContent='—';document.getElementById('consensus').textContent='—';document.getElementById('reason').textContent='';
+ }else{
+  sig.textContent=lp.pick==='B'?'莊':lp.pick==='P'?'閒':'跳過';sig.className='signal '+(lp.pick==='B'?'sb':lp.pick==='P'?'sp':'ss');
+  document.getElementById('signalText').textContent=lp.pick==='S'?'沒有達到出手條件':'下一局僅作統計模型建議';
+  document.getElementById('probB').textContent=(lp.pB*100).toFixed(1)+'%';document.getElementById('probP').textContent=((1-lp.pB)*100).toFixed(1)+'%';document.getElementById('consensus').textContent=(lp.cons*100).toFixed(0)+'%';document.getElementById('reason').textContent=lp.reason;
+ }
+ const h=document.getElementById('history');h.innerHTML='';
+ state.history.slice(-60).forEach(x=>{const d=document.createElement('div');d.className='dot '+x;d.textContent=x==='B'?'莊':x==='P'?'閒':'和';h.appendChild(d)});
+ const g=state.predictions.filter(x=>x.grade!=='push'),hits=g.filter(x=>x.grade==='hit').length,miss=g.filter(x=>x.grade==='miss').length,push=state.predictions.filter(x=>x.grade==='push').length;
+ document.getElementById('nPred').textContent=g.length;document.getElementById('nHit').textContent=hits;document.getElementById('nMiss').textContent=miss;document.getElementById('nPush').textContent=push;document.getElementById('nSkip').textContent=state.totals.skip||0;document.getElementById('rate').textContent=g.length?(hits/g.length*100).toFixed(1)+'%':'—';
+ const a=g.slice(-20),hh=a.filter(x=>x.grade==='hit').length;document.getElementById('recent').textContent=a.length?`最近 ${a.length} 次有效預測：${hh} 中／${a.length-hh} 錯（${(hh/a.length*100).toFixed(1)}%）`:'最近 20 次有效預測：—';
+ const ms=(lp&&lp.models)||modelSet(),box=document.getElementById('models');box.innerHTML='';
+ ms.forEach(m=>{const d=document.createElement('div');d.className='modelrow';const side=m.p>.515?'偏莊':m.p<.485?'偏閒':'中性';d.innerHTML=`<div>${m.name}</div><div>${side}</div><div>${(m.p*100).toFixed(1)}%</div>`;box.appendChild(d)});
+}
+render();
+</script>
+</body></html>
